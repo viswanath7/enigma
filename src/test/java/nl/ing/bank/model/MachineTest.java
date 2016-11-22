@@ -18,7 +18,7 @@ public class MachineTest {
 
   @Before
   public void setUp() throws Exception {
-    machine = new Machine('M', 'C', 'R');
+    machine = new Machine('M', 'C', 'K');
   }
 
   @Test
@@ -43,5 +43,12 @@ public class MachineTest {
     final Map<Long, Character> input = machine.getInput();
     assertThat(input.size(), equalTo(26));
     assertThat(input.get(14L), equalTo('O'));
+  }
+
+  @Test
+  public void should_decode_character_correctly() {
+    final Character result = machine.decode('E');
+    assertThat(result, equalTo('Q'));
+
   }
 }

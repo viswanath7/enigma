@@ -12,6 +12,7 @@ import java.util.stream.IntStream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
+import nl.ing.bank.exception.ReflectorException;
 import nl.ing.bank.exception.RotorInternalError;
 import nl.ing.bank.util.StreamUtility;
 
@@ -53,14 +54,20 @@ public class Machine {
   }
 
   public Character decode(final Character input) {
+    // Input to reflector traversal
     final Long inputRowNumber = getInputRowNumber(input);
-    final Long centreRotorRowNumberEntry = getCentreRotorRowNumberEntry(inputRowNumber);
-    final Long leftRotorRowNumberEntry = getLeftRotorRowNumberEntry(centreRotorRowNumberEntry);
-    final Long reflectorRowNumberEntry = getReflectorRowNumberEntry(leftRotorRowNumberEntry);
-    //TODO: Repeat similar logic to traverse across rotors from reflector
-    return null;
-  }
+    final Long centreRotorRowNumber = getCentreRotorRowNumberEntry(inputRowNumber);
+    final Long leftRotorRowNumber = getLeftRotorRowNumberEntry(centreRotorRowNumber);
+    final Long reflectorStartPosition = getReflectorRowNumberEntry(leftRotorRowNumber);
 
+    // Reflector to output traversal
+    final Long leftRotorStartPosition = getReflectorToLeftRotorRowNumber(reflectorStartPosition);
+    final Long centreRotorStartPosition = getLeftRotorToCentreRotorRowNumber(leftRotorStartPosition);
+    final Long rightRotorStartPosition = getCentreRotorToRightRotorRowNumber(centreRotorStartPosition);
+    final Long outputRowNumber = getRightRotorToOutputRowNumber(rightRotorStartPosition);
+    return getInput().get(outputRowNumber);
+    //TODO: Repeat similar logic to traverse across rotors from reflector
+  }
 
   private Long getInputRowNumber(final Character input) {
     return StreamUtility.convert(getInput()).getKey(input);
@@ -77,7 +84,7 @@ public class Machine {
     for(Map.Entry<Long, Pair<Character, Character>> entry: rightRotor.getWorkingWindow().entrySet()) {
       if(entry.getValue().compareTo(pair)==0) return entry.getKey();
     }
-    throw new RotorInternalError(rightRotor, "Error encountered while working with right motor", pair);
+    throw new RotorInternalError("Error encountered while working with right motor", rightRotor, pair);
   }
 
   // TODO: Refactor these methods by moving common logic into AbstractRotor
@@ -90,7 +97,7 @@ public class Machine {
     for(Map.Entry<Long, Pair<Character, Character>> entry: centreRotor.getWorkingWindow().entrySet()) {
       if(entry.getValue().compareTo(pair)==0) return entry.getKey();
     }
-    throw new RotorInternalError(centreRotor, "Error encountered while working with right motor", pair);
+    throw new RotorInternalError("Error encountered while working with right motor", centreRotor, pair);
   }
 
   // TODO: Refactor these methods by moving common logic into AbstractRotor
@@ -103,7 +110,51 @@ public class Machine {
     for(Map.Entry<Long, Pair<Character, Character>> entry: leftRotor.getWorkingWindow().entrySet()) {
       if(entry.getValue().compareTo(pair)==0) return entry.getKey();
     }
-    throw new RotorInternalError(leftRotor, "Error encountered while working with right motor", pair);
+    throw new RotorInternalError("Error encountered while working with right motor", leftRotor, pair);
+  }
+
+  // TODO: Refactor these methods by moving common logic into AbstractRotor
+  private Long getReflectorToLeftRotorRowNumber(Long reflectorStartPosition) {
+    final Map<Long, Character> reflectorMapping = getReflector();
+    final Character reflectorStart = reflectorMapping.get(reflectorStartPosition);
+    for(final Map.Entry<Long, Character> entry: reflectorMapping.entrySet()) {
+      if(entry.getKey()>reflectorStartPosition && entry.getValue().compareTo(reflectorStart)==0)
+        return entry.getKey();
+    }
+    throw new ReflectorException("Unable to find mapping in Reflector!", reflectorStart);
+  }
+
+  // TODO: Refactor these methods by moving common logic into AbstractRotor
+  private Long getLeftRotorToCentreRotorRowNumber(final Long leftRotorStartPosition) {
+    final Character right = leftRotor.getWorkingWindow().get(leftRotorStartPosition).getLeft();
+    final Character left = leftRotor.getMapping().getKey(right);
+    final ImmutablePair<Character, Character> pair = new ImmutablePair<>(left, right);
+    for(final Map.Entry<Long, Pair<Character, Character>> entry : leftRotor.getWorkingWindow().entrySet()) {
+      if(entry.getValue().compareTo(pair)==0) return entry.getKey();
+    }
+    throw new RotorInternalError("Error encountered while traversing from left rotor to centre rotor", leftRotor, pair);
+  }
+
+  // TODO: Refactor these methods by moving common logic into AbstractRotor
+  private Long getCentreRotorToRightRotorRowNumber(final Long centreRotorStartPosition) {
+    final Character right = centreRotor.getWorkingWindow().get(centreRotorStartPosition).getLeft();
+    final Character left = centreRotor.getMapping().getKey(right);
+    final ImmutablePair<Character, Character> pair = new ImmutablePair<>(left, right);
+    for(final Map.Entry<Long, Pair<Character, Character>> entry : centreRotor.getWorkingWindow().entrySet()) {
+      if(entry.getValue().compareTo(pair)==0) return entry.getKey();
+    }
+    throw new RotorInternalError("Error encountered while traversing from centre rotor to right rotor", centreRotor, pair);
+  }
+
+  // TODO: Refactor these methods by moving common logic into AbstractRotor
+  private Long getRightRotorToOutputRowNumber(final Long rightRotorStartPosition) {
+    final Character right = rightRotor.getWorkingWindow().get(rightRotorStartPosition).getLeft();
+    final Character left = rightRotor.getMapping().getKey(right);
+    final ImmutablePair<Character, Character> pair = new ImmutablePair<>(left, right);
+    for(final Map.Entry<Long, Pair<Character, Character>> entry : rightRotor.getWorkingWindow().entrySet()) {
+      if(entry.getValue().compareTo(pair)==0) return entry.getKey();
+    }
+    throw new RotorInternalError("Error encountered while traversing from right rotor to output", rightRotor, pair);
   }
 
 }
