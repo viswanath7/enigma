@@ -12,6 +12,7 @@ import java.util.stream.IntStream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
+import nl.ing.bank.exception.RotorInternalError;
 import nl.ing.bank.util.StreamUtility;
 
 
@@ -61,12 +62,11 @@ public class Machine {
   }
 
 
-
-
   private Long getInputRowNumber(final Character input) {
     return StreamUtility.convert(getInput()).getKey(input);
   }
 
+  // TODO: Refactor these methods by moving common logic into AbstractRotor
   private Long getCentreRotorRowNumberEntry(final Long inputRowNumber) {
 
     final Character rightRotorRightValue = rightRotor.getWorkingWindow().get(inputRowNumber).getRight();
@@ -77,10 +77,10 @@ public class Machine {
     for(Map.Entry<Long, Pair<Character, Character>> entry: rightRotor.getWorkingWindow().entrySet()) {
       if(entry.getValue().compareTo(pair)==0) return entry.getKey();
     }
-    return null; // TODO: Throw exception and abort execution
+    throw new RotorInternalError(rightRotor, "Error encountered while working with right motor", pair);
   }
 
-
+  // TODO: Refactor these methods by moving common logic into AbstractRotor
   private Long getLeftRotorRowNumberEntry(Long centreRotorRowNumber) {
     final Character centreRotorRightValue = centreRotor.getWorkingWindow().get(centreRotorRowNumber).getRight();
 
@@ -90,9 +90,10 @@ public class Machine {
     for(Map.Entry<Long, Pair<Character, Character>> entry: centreRotor.getWorkingWindow().entrySet()) {
       if(entry.getValue().compareTo(pair)==0) return entry.getKey();
     }
-    return null; // TODO: Throw exception and abort execution
+    throw new RotorInternalError(centreRotor, "Error encountered while working with right motor", pair);
   }
 
+  // TODO: Refactor these methods by moving common logic into AbstractRotor
   private Long getReflectorRowNumberEntry(Long leftRotorRowNumber) {
     final Character leftRotorRightValue = leftRotor.getWorkingWindow().get(leftRotorRowNumber).getRight();
 
@@ -102,7 +103,7 @@ public class Machine {
     for(Map.Entry<Long, Pair<Character, Character>> entry: leftRotor.getWorkingWindow().entrySet()) {
       if(entry.getValue().compareTo(pair)==0) return entry.getKey();
     }
-    return null; // TODO: Throw exception and abort execution
+    throw new RotorInternalError(leftRotor, "Error encountered while working with right motor", pair);
   }
 
 }
